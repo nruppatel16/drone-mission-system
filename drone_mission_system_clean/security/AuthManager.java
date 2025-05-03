@@ -1,0 +1,1 @@
+// AuthManager.java - placeholder content
