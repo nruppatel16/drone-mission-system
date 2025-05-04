@@ -1,1 +1,91 @@
-// GridMap.java - placeholder content
+package simulation;
+
+import java.util.List;
+
+import utils.Location;
+
+public class GridMap {
+    private final int rows;
+    private final int cols;
+    private final int[][] grid;
+
+    public static final int EMPTY = 0;
+    public static final int OBSTACLE = 1;
+
+    public GridMap(int rows, int cols) {
+        this.rows = rows;
+        this.cols = cols;
+        this.grid = new int[rows][cols];
+        initializeGrid();
+    }
+
+    private void initializeGrid() {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                grid[i][j] = EMPTY;
+            }
+        }
+    }
+
+    public void placeObstacle(int row, int col) {
+        if (isValidCell(row, col)) {
+            grid[row][col] = OBSTACLE;
+        }
+    }
+
+    public boolean isWalkable(int row, int col) {
+        return isValidCell(row, col) && grid[row][col] == EMPTY;
+    }
+
+    private boolean isValidCell(int row, int col) {
+        return row >= 0 && row < rows && col >= 0 && col < cols;
+    }
+
+    public void printMap(Location drone, Location target, List<Location> path) {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                Location current = new Location(i, j);
+                if (drone != null && drone.row == i && drone.col == j) {
+                    System.out.print("D ");
+                } else if (target != null && target.row == i && target.col == j) {
+                    System.out.print("T ");
+                } else if (grid[i][j] == OBSTACLE) {
+                    System.out.print("X ");
+                } else if (path != null && path.contains(current)) {
+                    System.out.print("• ");
+                } else {
+                    System.out.print(". ");
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    public int getRows() {
+        return rows;
+    }
+
+    public int getCols() {
+        return cols;
+    }
+
+    public void clear() {
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                grid[i][j] = EMPTY;
+            }
+        }
+    }
+
+    public void placeDrone(Location loc) {
+        if (isValidCell(loc.row, loc.col)) {
+            grid[loc.row][loc.col] = EMPTY; // optional logic — no special marker
+        }
+    }
+
+    public void placeTarget(Location loc) {
+        // No real placement — visual only
+        // The `printMap()` handles drawing D and T
+    }
+
+}

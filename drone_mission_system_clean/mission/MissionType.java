@@ -1,1 +1,7 @@
-// MissionType.java - placeholder content
+package mission;
+
+public enum MissionType {
+    SURVEILLANCE,
+    COMBAT,
+    RESCUE
+}
