@@ -1,54 +1,53 @@
-// File: src/drones/Drone.java
 package drones;
 
 import utils.Location;
 
-public abstract class Drone implements IDrone {
+public abstract class Drone {
+
     protected String id;
     protected String model;
     protected Location currentLocation;
-    protected boolean isActive;
+    protected int batteryLevel = 100; // new field (starts full)
 
-    public Drone(String id, String model, Location startLocation) {
+    public Drone(String id, String model, Location location) {
         this.id = id;
         this.model = model;
-        this.currentLocation = startLocation;
-        this.isActive = false;
+        this.currentLocation = location;
     }
 
     public String getId() {
         return id;
     }
 
+    public String getModel() {
+        return model;
+    }
+
     public Location getCurrentLocation() {
         return currentLocation;
     }
 
-    public void takeOff() {
-        isActive = true;
-        System.out.println(model + " " + id + " taking off.");
+    public int getBatteryLevel() {
+        return batteryLevel;
     }
 
-    public void land() {
-        isActive = false;
-        System.out.println(model + " " + id + " landing.");
+    public void drainBattery(int amount) {
+        batteryLevel -= amount;
+        if (batteryLevel < 0) batteryLevel = 0;
     }
 
-    public void moveTo(int x, int y) {
-        currentLocation.setX(x);
-        currentLocation.setY(y);
-        System.out.println(model + " " + id + " moved to (" + x + ", " + y + ")");
+    public void recharge() {
+        batteryLevel = 100;
     }
-
-    public String getStatus() {
-        return isActive ? "Active" : "Inactive";
-    }
-
-    // Abstract method that must be implemented by subclasses
-    public abstract void performMission();
 
     public void setCurrentLocation(Location loc) {
         this.currentLocation = loc;
+    }
+
+    public abstract void performMission();
+
+    public void decreaseBattery(int amount) {
+        this.batteryLevel = Math.max(0, batteryLevel - amount);
     }
 
 }

@@ -1,69 +1,143 @@
 package simulation;
 
+import drones.Drone;
 import mission.Mission;
-import mission.MissionQueue;
 import mission.MissionLogger;
+import mission.MissionQueue;
+import mission.MissionPlanner;
 import utils.Location;
-
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Simulator {
-
     private MissionQueue missionQueue;
+    private Scanner scanner;
+    private final Location chargerLocation = new Location(1, 7);
 
-    public Simulator(MissionQueue queue) {
+    public Simulator(MissionQueue queue,MissionPlanner planner) {
         this.missionQueue = queue;
+        this.scanner = new Scanner(System.in);
     }
 
     public void runSimulation() {
-        System.out.println("🧠 Starting simulation...");
+        System.out.println("\n🧠 Starting simulation...");
 
-        int step = 1;
-        while (!missionQueue.isEmpty()) {
-            System.out.println("\n⏱️ Step " + step + ":");
-            Mission current = missionQueue.getNextMission();
-            if (current != null) {
-                GridMap grid = new GridMap(10, 10);
-                grid.clear();
-
-                Location start = current.getAssignedDrone().getCurrentLocation();
-                Location end = current.getTargetLocation();
-
-                // Optional obstacles for testing
-                grid.placeObstacle(3, 3);
-                grid.placeObstacle(4, 3);
-                grid.placeObstacle(5, 3);
-
-                List<Location> path = PathFinder.findPath(grid, start, end);
-
-                if (path.isEmpty()) {
-                    System.out.println("❌ No path found for this mission.");
-                    continue;
-                }
-
-                System.out.println("Path length: " + path.size()); // ✅ Added here
-
-                // Animate the drone along the path
-                for (Location stepLoc : path) {
-                    grid.placeDrone(stepLoc);
-                    grid.placeTarget(end);
-                    grid.printMap(stepLoc, end, path);
-
-                    try {
-                        Thread.sleep(300); // simulate delay
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                System.out.println("✅ Mission path completed. Steps taken: " + path.size());
-
-                current.startMission();
-                MissionLogger.logMission(current,false);
-            }
-            step++;
+        Map<Drone, List<Mission>> missionGroups = new HashMap<>();
+        for (Mission mission : missionQueue.getAllMissions()) {
+            Drone drone = mission.getAssignedDrone();
+            missionGroups.computeIfAbsent(drone, k -> new ArrayList<>()).add(mission);
         }
 
-        System.out.println("\n🛑 Simulation complete. All missions executed.");
+        System.out.println("📦 Missions found: " + missionGroups.size());
+    
+
+        boolean offerFuelMode = missionGroups.values().stream().anyMatch(list -> list.size() > 1);
+        int mode = 1;
+
+        if (offerFuelMode) {
+            System.out.println("\nYou have assigned multiple missions to at least one drone.");
+            System.out.println("Choose mission execution mode:");
+            System.out.println("[1] Direct Orders (in order assigned)");
+            System.out.println("[2] Fuel Efficiency Mode (optimize path)");
+            System.out.print("Your choice: ");
+            mode = scanner.nextInt();
+            scanner.nextLine();
+        }
+
+        int step = 1;
+        for (Map.Entry<Drone, List<Mission>> entry : missionGroups.entrySet()) {
+            Drone drone = entry.getKey();
+            List<Mission> missions = entry.getValue();
+
+            if (mode == 2 && missions.size() > 1) {
+                missions = sortByFuelEfficiency(missions, drone.getCurrentLocation());
+            }
+
+            for (Mission current : missions) {
+                Location start = drone.getCurrentLocation();
+                Location end = current.getTargetLocation();
+
+                int toTarget = getDistance(start, end);
+                int toCharger = getDistance(end, chargerLocation);
+                int totalNeeded = toTarget + toCharger;
+
+                if (drone.getBatteryLevel() < totalNeeded) {
+                    System.out.println("\n🔋 Battery low for next mission. Redirecting to charger first...");
+                    goToLocation(drone, chargerLocation, step, "Recharging at station...");
+                    drone.recharge();
+                    System.out.println("🔋 Battery now full. Resuming mission.");
+                    step++;
+                }
+
+                System.out.println("\n⏱️ Step " + step + ":");
+                GridMap grid = new GridMap(10, 10);
+                grid.clear();
+                grid.placeDrone(drone.getCurrentLocation());
+                grid.placeTarget(end);
+
+                List<Location> path = PathFinder.findPath(grid, drone.getCurrentLocation(), end);
+                grid.printMap(drone.getCurrentLocation(), end, path);
+                System.out.println("📍 Path length: " + path.size());
+                grid.printWithMovement(drone.getCurrentLocation(), end, path);
+
+                current.startMission();
+                MissionLogger.logMission(current, true);
+                step++;
+            }
+        }
+
+        System.out.println("\n✅ Simulation complete. All missions executed.");
+        rechargeAllDrones(missionGroups.keySet());
+    }
+
+    private void rechargeAllDrones(Set<Drone> drones) {
+        System.out.println("\n🔁 Recharging all drones...");
+        for (Drone d : drones) {
+            d.recharge();
+            System.out.println("🔋 " + d.getId() + " recharged to 100%");
+        }
+    }
+
+    private List<Mission> sortByFuelEfficiency(List<Mission> missions, Location start) {
+        List<Mission> sorted = new ArrayList<>();
+        Set<Mission> remaining = new HashSet<>(missions);
+        Location current = start;
+
+        while (!remaining.isEmpty()) {
+            Mission nearest = null;
+            int minDist = Integer.MAX_VALUE;
+
+            for (Mission m : remaining) {
+                Location tgt = m.getTargetLocation();
+                int dist = Math.abs(current.row - tgt.row) + Math.abs(current.col - tgt.col);
+                if (dist < minDist) {
+                    minDist = dist;
+                    nearest = m;
+                }
+            }
+
+            sorted.add(nearest);
+            current = nearest.getTargetLocation();
+            remaining.remove(nearest);
+        }
+
+        return sorted;
+    }
+
+    private void goToLocation(Drone drone, Location destination, int step, String msg) {
+        GridMap grid = new GridMap(10, 10);
+        grid.clear();
+        Location start = drone.getCurrentLocation();
+        List<Location> path = PathFinder.findPath(grid, start, destination);
+        grid.printMap(start, destination, path);
+        System.out.println("📍 Path length: " + path.size());
+        grid.printWithMovement(start, destination, path);
+        System.out.println(msg);
+        drone.setCurrentLocation(destination);
+        drone.decreaseBattery(path.size());
+    }
+
+    private int getDistance(Location a, Location b) {
+        return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
     }
 }

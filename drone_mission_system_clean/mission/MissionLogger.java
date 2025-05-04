@@ -1,4 +1,8 @@
 package mission;
+import simulation.GridMap;
+import simulation.PathFinder;
+import utils.Location;
+import java.util.List;
 
 import drones.Drone;
 import utils.Location;
@@ -7,6 +11,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+
 
 public class MissionLogger {
 
@@ -23,7 +29,7 @@ public class MissionLogger {
                     timestamp,
                     mission.getMissionId(),
                     mission.getType(),
-                    drone.getMissionId(),
+                    mission.getMissionId(),
                     autoDeployed,
                     target.row,
                     target.col

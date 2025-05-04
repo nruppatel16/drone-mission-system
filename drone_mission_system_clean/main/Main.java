@@ -99,11 +99,13 @@ public class Main {
                     }
 
                     Mission mission = planner.assignMissionAutomatically(missionId, missionType, target);
+                    queue.addMission(mission);
+
                     if (mission != null)
                         queue.addMission(mission);
 
                 } else if (choice == 3) {
-                    Simulator sim = new Simulator(queue);
+                    Simulator sim = new Simulator(queue,planner);
                     sim.runSimulation();
                     planner.resetAssignments(); // ✅ Allow drone reuse after sim
 
@@ -126,7 +128,7 @@ public class Main {
                     new SurveillanceDrone("DR-S2", "HawkEye", new Location(3, 3)), new Location(7, 4)));
             queue.addMission(new Mission("M-102", MissionType.RESCUE,
                     new RescueDrone("DR-R2", "AngelWing", new Location(5, 1), true), new Location(6, 6)));
-            Simulator sim = new Simulator(queue);
+            Simulator sim = new Simulator(queue,null);
             sim.runSimulation();
 
         } else if (role == Role.GUEST) {

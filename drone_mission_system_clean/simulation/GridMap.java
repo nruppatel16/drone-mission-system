@@ -1,7 +1,6 @@
 package simulation;
 
 import java.util.List;
-
 import utils.Location;
 
 public class GridMap {
@@ -11,12 +10,14 @@ public class GridMap {
 
     public static final int EMPTY = 0;
     public static final int OBSTACLE = 1;
+    public static final int CHARGER = 2;
 
     public GridMap(int rows, int cols) {
         this.rows = rows;
         this.cols = cols;
         this.grid = new int[rows][cols];
         initializeGrid();
+        placeDefaults(); // Add static obstacles + recharge station
     }
 
     private void initializeGrid() {
@@ -27,14 +28,30 @@ public class GridMap {
         }
     }
 
+    private void placeDefaults() {
+        // 🔋 Recharge station
+        placeRechargeStation(1, 5);
+
+        // ❌ Obstacles
+        placeObstacle(2, 7);
+        placeObstacle(3, 4);
+        placeObstacle(5, 6);
+    }
+
     public void placeObstacle(int row, int col) {
         if (isValidCell(row, col)) {
             grid[row][col] = OBSTACLE;
         }
     }
 
+    public void placeRechargeStation(int row, int col) {
+        if (isValidCell(row, col)) {
+            grid[row][col] = CHARGER;
+        }
+    }
+
     public boolean isWalkable(int row, int col) {
-        return isValidCell(row, col) && grid[row][col] == EMPTY;
+        return isValidCell(row, col) && grid[row][col] != OBSTACLE;
     }
 
     private boolean isValidCell(int row, int col) {
@@ -51,6 +68,8 @@ public class GridMap {
                     System.out.print("T ");
                 } else if (grid[i][j] == OBSTACLE) {
                     System.out.print("X ");
+                } else if (grid[i][j] == CHARGER) {
+                    System.out.print("C ");
                 } else if (path != null && path.contains(current)) {
                     System.out.print("• ");
                 } else {
@@ -70,22 +89,39 @@ public class GridMap {
     }
 
     public void clear() {
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                grid[i][j] = EMPTY;
-            }
-        }
+        initializeGrid();
+        placeDefaults(); // Reapply obstacles and charger
     }
 
     public void placeDrone(Location loc) {
         if (isValidCell(loc.row, loc.col)) {
-            grid[loc.row][loc.col] = EMPTY; // optional logic — no special marker
+            grid[loc.row][loc.col] = EMPTY;
         }
     }
 
     public void placeTarget(Location loc) {
         // No real placement — visual only
-        // The `printMap()` handles drawing D and T
     }
 
+    public void printWithMovement(Location start, Location end, List<Location> path) {
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                Location current = new Location(row, col);
+                if (start.row == row && start.col == col) {
+                    System.out.print("D ");
+                } else if (end.row == row && end.col == col) {
+                    System.out.print("T ");
+                } else if (path != null && path.contains(current)) {
+                    System.out.print("* ");
+                } else if (grid[row][col] == OBSTACLE) {
+                    System.out.print("X ");
+                } else if (grid[row][col] == CHARGER) {
+                    System.out.print("C ");
+                } else {
+                    System.out.print(". ");
+                }
+            }
+            System.out.println();
+        }
+    }
 }

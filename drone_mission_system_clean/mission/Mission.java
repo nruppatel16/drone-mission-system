@@ -19,13 +19,14 @@ public class Mission {
     }
 
     public void startMission() {
-        System.out.println("Starting mission: " + missionId + " [" + type + "]");
-        assignedDrone.takeOff();
-        assignedDrone.moveTo(targetLocation.getX(), targetLocation.getY());
-        assignedDrone.performMission();
-        assignedDrone.land();
-        completed = true;
-        System.out.println("Mission completed: " + missionId);
+        // System.out.println("Starting mission: " + missionId + " [" + type + "]");
+        // assignedDrone.takeOff();
+        // assignedDrone.moveTo(targetLocation.getX(), targetLocation.getY());
+        // assignedDrone.performMission();
+        // assignedDrone.land();
+        // completed = true;
+        // System.out.println("Mission completed: " + missionId);
+        assignedDrone.setCurrentLocation(targetLocation); 
     }
 
     public boolean isCompleted() {
