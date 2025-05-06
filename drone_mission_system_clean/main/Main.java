@@ -55,7 +55,7 @@ public class Main {
 
                     switch (type.toLowerCase()) {
                         case "combat":
-                            System.out.print("Missile count: ");
+                            System.out.print("Missile count: ");    
                             int missiles = scanner.nextInt();
                             scanner.nextLine();
                             dronePool.add(new CombatDrone(id, model, loc, missiles));
@@ -68,6 +68,12 @@ public class Main {
                             break;
                         default:
                             System.out.println("Invalid drone type.");
+                            break;
+                    }
+
+                    // ✅ Move battery tweak after adding drone
+                    if (id.equals("sr-low") && !dronePool.isEmpty()) {
+                        dronePool.get(dronePool.size() - 1).drainBattery(85);  // Set to 15%
                     }
 
                 } else if (choice == 2) {

@@ -4,6 +4,7 @@ import drones.*;
 import simulation.GridMap;
 import simulation.PathFinder;
 import utils.Location;
+import mission.MissionLog;
 
 import java.util.*;
 
@@ -37,10 +38,6 @@ public class MissionPlanner {
                 continue;
             }
 
-            if (drone.getBatteryLevel() < 20) {
-                continue; // ❌ skip drones with low battery
-            }
-
             int dist = Math.abs(drone.getCurrentLocation().row - target.row)
                      + Math.abs(drone.getCurrentLocation().col - target.col);
 
@@ -50,21 +47,46 @@ public class MissionPlanner {
             }
         }
 
-        // Auto-deploy if none found
+        boolean isAutoDeployed = false;
+
         if (bestDrone == null) {
             String droneId = "AUTO-" + System.currentTimeMillis();
-            bestDrone = new SurveillanceDrone(droneId, "AutoGen", new Location(1, 7)); // Spawn at charging station
+            bestDrone = new SurveillanceDrone(droneId, "AutoGen", new Location(1, 7));
             dronePool.add(bestDrone);
             System.out.println("⚠️ No suitable drone found — auto-deployed: " + droneId);
+            isAutoDeployed = true;
         }
 
         assignedDrones.add(bestDrone.getId());
 
-        // ⏱️ ETA + Path Calculation
         GridMap grid = new GridMap(10, 10);
         Location start = bestDrone.getCurrentLocation();
-        List<Location> path = PathFinder.findPath(grid, start, target);
-        int eta = (path != null) ? path.size() : -1;
+        List<Location> pathToTarget = PathFinder.findPath(grid, start, target);
+        Location charger = new Location(1, 7);
+        List<Location> pathToCharger = PathFinder.findPath(grid, target, charger);
+
+        int totalSteps = 0;
+        if (pathToTarget != null) totalSteps += pathToTarget.size();
+        if (pathToCharger != null) totalSteps += pathToCharger.size();
+
+        int batteryNeeded = totalSteps * 5;
+
+        if (bestDrone.getBatteryLevel() < batteryNeeded) {
+            System.out.println("⚠️ Not enough battery to complete mission and reach charger. Rerouting to recharge first...");
+            List<Location> pathToChargerNow = PathFinder.findPath(grid, start, charger);
+            if (pathToChargerNow != null) {
+                bestDrone.drainBattery(pathToChargerNow.size() * 5);
+                bestDrone.setCurrentLocation(charger);
+                System.out.println("🔋 Battery after reaching charger: " + bestDrone.getBatteryLevel() + "%");
+                bestDrone.recharge();
+                System.out.println("🔌 Recharged to 100% at charger before mission.");
+            } else {
+                System.out.println("❌ No path to charger. Mission cannot be assigned.");
+                return null;
+            }
+        }
+
+        int eta = (pathToTarget != null) ? pathToTarget.size() : -1;
 
         System.out.println("✅ Mission " + id + " assigned to Drone " + bestDrone.getId());
         System.out.println("📍 Path Length: " + ((eta != -1) ? eta : "N/A"));
@@ -74,15 +96,25 @@ public class MissionPlanner {
             System.out.println("🔁 Reusing drone " + bestDrone.getId() + " (same mission type)");
         }
 
-        // 🔋 Drain battery
-        bestDrone.drainBattery(eta);
+        bestDrone.drainBattery(eta * 5);
         System.out.println("🔋 Battery after assignment: " + bestDrone.getBatteryLevel() + "%");
 
         droneMissionCount.put(bestDrone.getId(),
                 droneMissionCount.getOrDefault(bestDrone.getId(), 0) + 1);
 
         Mission mission = new Mission(id, type, bestDrone, target);
-        MissionLogger.logMission(mission, bestDrone.getId().startsWith("AUTO"));
+        MissionLogger.logMission(mission, isAutoDeployed);
+
+        MissionLog log = new MissionLog(
+            id,
+            start,
+            target,
+            (eta != -1 ? eta : 0),
+            (eta != -1 ? eta * 5 : 0),
+            bestDrone.getBatteryLevel() == 100,
+            (eta != -1)
+        );
+        MissionLogger.logMissionWithStats(mission, log);
 
         return mission;
     }
@@ -92,8 +124,8 @@ public class MissionPlanner {
         droneMissionCount.clear();
     }
 
-    // 🔁 Let Simulator access all drones
     public List<Drone> getDronePool() {
         return dronePool;
     }
 }
+

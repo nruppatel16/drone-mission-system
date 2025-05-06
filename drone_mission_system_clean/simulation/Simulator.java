@@ -13,8 +13,10 @@ public class Simulator {
     private MissionQueue missionQueue;
     private Scanner scanner;
     private final Location chargerLocation = new Location(1, 7);
+    private final String[][] visualMap;
 
-    public Simulator(MissionQueue queue,MissionPlanner planner) {
+
+    public Simulator(MissionQueue queue, MissionPlanner planner) {
         this.missionQueue = queue;
         this.scanner = new Scanner(System.in);
     }
@@ -29,7 +31,6 @@ public class Simulator {
         }
 
         System.out.println("📦 Missions found: " + missionGroups.size());
-    
 
         boolean offerFuelMode = missionGroups.values().stream().anyMatch(list -> list.size() > 1);
         int mode = 1;
@@ -59,11 +60,11 @@ public class Simulator {
 
                 int toTarget = getDistance(start, end);
                 int toCharger = getDistance(end, chargerLocation);
-                int totalNeeded = toTarget + toCharger;
+                int totalNeeded = (toTarget + toCharger) * 5; // Adjusted for 5% per step
 
                 if (drone.getBatteryLevel() < totalNeeded) {
                     System.out.println("\n🔋 Battery low for next mission. Redirecting to charger first...");
-                    goToLocation(drone, chargerLocation, step, "Recharging at station...");
+                    goToLocation(drone, chargerLocation, step, "Recharging at station...",true);
                     drone.recharge();
                     System.out.println("🔋 Battery now full. Resuming mission.");
                     step++;
@@ -81,6 +82,8 @@ public class Simulator {
                 grid.printWithMovement(drone.getCurrentLocation(), end, path);
 
                 current.startMission();
+                drone.decreaseBattery(path.size());
+                drone.setCurrentLocation(end);
                 MissionLogger.logMission(current, true);
                 step++;
             }
@@ -124,11 +127,18 @@ public class Simulator {
         return sorted;
     }
 
-    private void goToLocation(Drone drone, Location destination, int step, String msg) {
+    private void goToLocation(Drone drone, Location destination, int step, String msg, boolean isCharging) {
         GridMap grid = new GridMap(10, 10);
         grid.clear();
         Location start = drone.getCurrentLocation();
         List<Location> path = PathFinder.findPath(grid, start, destination);
+
+        if (isCharging) {
+            grid.setCell(destination.row, destination.col, "C-D");
+        } else {
+            grid.placeTarget(destination);
+        }
+
         grid.printMap(start, destination, path);
         System.out.println("📍 Path length: " + path.size());
         grid.printWithMovement(start, destination, path);
@@ -136,6 +146,7 @@ public class Simulator {
         drone.setCurrentLocation(destination);
         drone.decreaseBattery(path.size());
     }
+
 
     private int getDistance(Location a, Location b) {
         return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);

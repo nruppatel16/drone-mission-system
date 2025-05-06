@@ -7,6 +7,7 @@ public class GridMap {
     private final int rows;
     private final int cols;
     private final int[][] grid;
+    private String[][] visualMap;
 
     public static final int EMPTY = 0;
     public static final int OBSTACLE = 1;
@@ -16,23 +17,22 @@ public class GridMap {
         this.rows = rows;
         this.cols = cols;
         this.grid = new int[rows][cols];
+        this.visualMap = new String[rows][cols]; // ✅ Added initialization
         initializeGrid();
-        placeDefaults(); // Add static obstacles + recharge station
+        placeDefaults();
     }
 
     private void initializeGrid() {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 grid[i][j] = EMPTY;
+                visualMap[i][j] = ".";
             }
         }
     }
 
     private void placeDefaults() {
-        // 🔋 Recharge station
         placeRechargeStation(1, 5);
-
-        // ❌ Obstacles
         placeObstacle(2, 7);
         placeObstacle(3, 4);
         placeObstacle(5, 6);
@@ -63,7 +63,11 @@ public class GridMap {
             for (int j = 0; j < cols; j++) {
                 Location current = new Location(i, j);
                 if (drone != null && drone.row == i && drone.col == j) {
-                    System.out.print("D ");
+                    if (grid[i][j] == CHARGER) {
+                        System.out.print("C-D ");
+                    } else {
+                        System.out.print("D ");
+                    }
                 } else if (target != null && target.row == i && target.col == j) {
                     System.out.print("T ");
                 } else if (grid[i][j] == OBSTACLE) {
@@ -90,7 +94,7 @@ public class GridMap {
 
     public void clear() {
         initializeGrid();
-        placeDefaults(); // Reapply obstacles and charger
+        placeDefaults();
     }
 
     public void placeDrone(Location loc) {
@@ -108,7 +112,11 @@ public class GridMap {
             for (int col = 0; col < cols; col++) {
                 Location current = new Location(row, col);
                 if (start.row == row && start.col == col) {
-                    System.out.print("D ");
+                    if (grid[row][col] == CHARGER) {
+                        System.out.print("C-D ");
+                    } else {
+                        System.out.print("D ");
+                    }
                 } else if (end.row == row && end.col == col) {
                     System.out.print("T ");
                 } else if (path != null && path.contains(current)) {
@@ -122,6 +130,12 @@ public class GridMap {
                 }
             }
             System.out.println();
+        }
+    }
+
+    public void setCell(int row, int col, String val) {
+        if (isValidCell(row, col)) {
+            visualMap[row][col] = val;
         }
     }
 }
