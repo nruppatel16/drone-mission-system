@@ -7,7 +7,6 @@ public class GridMap {
     private final int rows;
     private final int cols;
     private final int[][] grid;
-    private String[][] visualMap;
 
     public static final int EMPTY = 0;
     public static final int OBSTACLE = 1;
@@ -17,7 +16,6 @@ public class GridMap {
         this.rows = rows;
         this.cols = cols;
         this.grid = new int[rows][cols];
-        this.visualMap = new String[rows][cols]; // ✅ Added initialization
         initializeGrid();
         placeDefaults();
     }
@@ -26,7 +24,6 @@ public class GridMap {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 grid[i][j] = EMPTY;
-                visualMap[i][j] = ".";
             }
         }
     }
@@ -68,7 +65,7 @@ public class GridMap {
                     } else {
                         System.out.print("D ");
                     }
-                } else if (target != null && target.row == i && target.col == j) {
+                } else if (target != null && target.row == i && target.col == j && (drone == null || !(drone.row == i && drone.col == j))) {
                     System.out.print("T ");
                 } else if (grid[i][j] == OBSTACLE) {
                     System.out.print("X ");
@@ -117,7 +114,7 @@ public class GridMap {
                     } else {
                         System.out.print("D ");
                     }
-                } else if (end.row == row && end.col == col) {
+                } else if (end.row == row && end.col == col && (start.row != row || start.col != col)) {
                     System.out.print("T ");
                 } else if (path != null && path.contains(current)) {
                     System.out.print("* ");
@@ -130,12 +127,6 @@ public class GridMap {
                 }
             }
             System.out.println();
-        }
-    }
-
-    public void setCell(int row, int col, String val) {
-        if (isValidCell(row, col)) {
-            visualMap[row][col] = val;
         }
     }
 }

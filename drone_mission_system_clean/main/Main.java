@@ -28,9 +28,16 @@ public class Main {
         System.out.println("\nHello " + currentUser.getUsername() + "! You are logged in as " + role);
 
         if (role == Role.COMMANDER) {
+             System.out.print("Enter grid rows: ");
+            int gridRows = scanner.nextInt();
+            System.out.print("Enter grid columns: ");
+            int gridCols = scanner.nextInt();
+            scanner.nextLine();
+
             List<Drone> dronePool = new ArrayList<>();
             MissionQueue queue = new MissionQueue();
             MissionPlanner planner = new MissionPlanner(dronePool);
+            //Simulator.setGridSize(gridRows, gridCols); 
 
             while (true) {
                 System.out.println("\n===== COMMANDER MENU =====");

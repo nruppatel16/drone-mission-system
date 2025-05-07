@@ -7,18 +7,28 @@ import mission.MissionQueue;
 import mission.MissionPlanner;
 import utils.Location;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Simulator {
     private MissionQueue missionQueue;
     private Scanner scanner;
-    private final Location chargerLocation = new Location(1, 7);
-    private final String[][] visualMap;
-
+    private Location chargerLocation;
+    private int gridRows;
+    private int gridCols;
 
     public Simulator(MissionQueue queue, MissionPlanner planner) {
         this.missionQueue = queue;
         this.scanner = new Scanner(System.in);
+        promptGridSize(); // ✅ Ask user for grid size at start
+        this.chargerLocation = new Location(1, 5); // default
+    }
+
+    private void promptGridSize() {
+        System.out.println("📏 Enter Grid Dimensions:");
+        System.out.print("Rows: ");
+        gridRows = scanner.nextInt();
+        System.out.print("Cols: ");
+        gridCols = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
     }
 
     public void runSimulation() {
@@ -60,18 +70,18 @@ public class Simulator {
 
                 int toTarget = getDistance(start, end);
                 int toCharger = getDistance(end, chargerLocation);
-                int totalNeeded = (toTarget + toCharger) * 5; // Adjusted for 5% per step
+                int totalNeeded = (toTarget + toCharger) * 5;
 
                 if (drone.getBatteryLevel() < totalNeeded) {
                     System.out.println("\n🔋 Battery low for next mission. Redirecting to charger first...");
-                    goToLocation(drone, chargerLocation, step, "Recharging at station...",true);
+                    goToLocation(drone, chargerLocation, step, "Recharging at station...", true);
                     drone.recharge();
                     System.out.println("🔋 Battery now full. Resuming mission.");
                     step++;
                 }
 
                 System.out.println("\n⏱️ Step " + step + ":");
-                GridMap grid = new GridMap(10, 10);
+                GridMap grid = new GridMap(gridRows, gridCols);
                 grid.clear();
                 grid.placeDrone(drone.getCurrentLocation());
                 grid.placeTarget(end);
@@ -128,25 +138,24 @@ public class Simulator {
     }
 
     private void goToLocation(Drone drone, Location destination, int step, String msg, boolean isCharging) {
-        GridMap grid = new GridMap(10, 10);
+        GridMap grid = new GridMap(gridRows, gridCols);
         grid.clear();
         Location start = drone.getCurrentLocation();
         List<Location> path = PathFinder.findPath(grid, start, destination);
 
+        System.out.println("\n⏱️ Step " + step + ":");
         if (isCharging) {
-            grid.setCell(destination.row, destination.col, "C-D");
+            grid.printMap(destination, null, path);
         } else {
-            grid.placeTarget(destination);
+            grid.printMap(start, destination, path);
         }
 
-        grid.printMap(start, destination, path);
         System.out.println("📍 Path length: " + path.size());
         grid.printWithMovement(start, destination, path);
         System.out.println(msg);
         drone.setCurrentLocation(destination);
         drone.decreaseBattery(path.size());
     }
-
 
     private int getDistance(Location a, Location b) {
         return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
