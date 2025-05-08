@@ -5,6 +5,7 @@ import simulation.GridMap;
 import simulation.PathFinder;
 import utils.Location;
 import mission.MissionLog;
+import simulation.Simulator;
 
 import java.util.*;
 
@@ -13,6 +14,7 @@ public class MissionPlanner {
     private List<Drone> dronePool;
     private Set<String> assignedDrones;
     private Map<String, Integer> droneMissionCount;
+    private Scanner scanner = new Scanner(System.in);
 
     public MissionPlanner(List<Drone> dronePool) {
         this.dronePool = dronePool;
@@ -51,7 +53,23 @@ public class MissionPlanner {
 
         if (bestDrone == null) {
             String droneId = "AUTO-" + System.currentTimeMillis();
-            bestDrone = new SurveillanceDrone(droneId, "AutoGen", new Location(1, 7));
+            Location baseLocation = new Location(0, 0); // Base location for all drones
+
+            switch (type) {
+                case COMBAT:
+                    System.out.print("No combat drone available. Enter missile count for auto-deployed combat drone: ");
+                    int missiles = scanner.nextInt();
+                    scanner.nextLine();
+                    bestDrone = new CombatDrone(droneId, "AutoGen", baseLocation, missiles);
+                    break;
+                case SURVEILLANCE:
+                    bestDrone = new SurveillanceDrone(droneId, "AutoGen", baseLocation);
+                    break;
+                case RESCUE:
+                    bestDrone = new RescueDrone(droneId, "AutoGen", baseLocation, true);
+                    break;
+            }
+
             dronePool.add(bestDrone);
             System.out.println("⚠️ No suitable drone found — auto-deployed: " + droneId);
             isAutoDeployed = true;
@@ -59,10 +77,10 @@ public class MissionPlanner {
 
         assignedDrones.add(bestDrone.getId());
 
-        GridMap grid = new GridMap(10, 10);
+        GridMap grid = new GridMap(Simulator.getGridRows(), Simulator.getGridCols());
         Location start = bestDrone.getCurrentLocation();
         List<Location> pathToTarget = PathFinder.findPath(grid, start, target);
-        Location charger = new Location(1, 7);
+        Location charger = new Location(1, 5); // consistent with simulator
         List<Location> pathToCharger = PathFinder.findPath(grid, target, charger);
 
         int totalSteps = 0;
@@ -128,4 +146,3 @@ public class MissionPlanner {
         return dronePool;
     }
 }
-

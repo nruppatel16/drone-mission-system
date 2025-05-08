@@ -21,23 +21,22 @@ public class Main {
         String password = scanner.nextLine();
 
         User currentUser = auth.login(username, password);
-        if (currentUser == null)
-            return;
+        if (currentUser == null) return;
 
         Role role = currentUser.getRole();
         System.out.println("\nHello " + currentUser.getUsername() + "! You are logged in as " + role);
 
         if (role == Role.COMMANDER) {
-             System.out.print("Enter grid rows: ");
+            System.out.print("Enter number of rows for the grid: ");
             int gridRows = scanner.nextInt();
-            System.out.print("Enter grid columns: ");
+            System.out.print("Enter number of columns for the grid: ");
             int gridCols = scanner.nextInt();
             scanner.nextLine();
+            Simulator.setGridSize(gridRows, gridCols);
 
             List<Drone> dronePool = new ArrayList<>();
             MissionQueue queue = new MissionQueue();
             MissionPlanner planner = new MissionPlanner(dronePool);
-            //Simulator.setGridSize(gridRows, gridCols); 
 
             while (true) {
                 System.out.println("\n===== COMMANDER MENU =====");
@@ -58,29 +57,23 @@ public class Main {
                     String id = scanner.nextLine();
                     System.out.print("Model: ");
                     String model = scanner.nextLine();
-                    Location loc = new Location(0, 0); // Default position
+                    Location base = new Location(0, 0);
 
                     switch (type.toLowerCase()) {
                         case "combat":
-                            System.out.print("Missile count: ");    
+                            System.out.print("Missile count: ");
                             int missiles = scanner.nextInt();
                             scanner.nextLine();
-                            dronePool.add(new CombatDrone(id, model, loc, missiles));
+                            dronePool.add(new CombatDrone(id, model, base, missiles));
                             break;
                         case "surveillance":
-                            dronePool.add(new SurveillanceDrone(id, model, loc));
+                            dronePool.add(new SurveillanceDrone(id, model, base));
                             break;
                         case "rescue":
-                            dronePool.add(new RescueDrone(id, model, loc, true));
+                            dronePool.add(new RescueDrone(id, model, base, true));
                             break;
                         default:
                             System.out.println("Invalid drone type.");
-                            break;
-                    }
-
-                    // ✅ Move battery tweak after adding drone
-                    if (id.equals("sr-low") && !dronePool.isEmpty()) {
-                        dronePool.get(dronePool.size() - 1).drainBattery(85);  // Set to 15%
                     }
 
                 } else if (choice == 2) {
@@ -112,15 +105,12 @@ public class Main {
                     }
 
                     Mission mission = planner.assignMissionAutomatically(missionId, missionType, target);
-                    queue.addMission(mission);
-
-                    if (mission != null)
-                        queue.addMission(mission);
+                    if (mission != null) queue.addMission(mission);
 
                 } else if (choice == 3) {
-                    Simulator sim = new Simulator(queue,planner);
+                    Simulator sim = new Simulator(queue, planner);
                     sim.runSimulation();
-                    planner.resetAssignments(); // ✅ Allow drone reuse after sim
+                    planner.resetAssignments();
 
                 } else if (choice == 4) {
                     System.out.println("Logs available at: logs/mission_log.txt");
@@ -138,10 +128,10 @@ public class Main {
             System.out.println("\n===== OPERATOR MODE =====");
             MissionQueue queue = new MissionQueue();
             queue.addMission(new Mission("M-101", MissionType.SURVEILLANCE,
-                    new SurveillanceDrone("DR-S2", "HawkEye", new Location(3, 3)), new Location(7, 4)));
+                    new SurveillanceDrone("DR-S2", "HawkEye", new Location(0, 0)), new Location(7, 4)));
             queue.addMission(new Mission("M-102", MissionType.RESCUE,
-                    new RescueDrone("DR-R2", "AngelWing", new Location(5, 1), true), new Location(6, 6)));
-            Simulator sim = new Simulator(queue,null);
+                    new RescueDrone("DR-R2", "AngelWing", new Location(0, 0), true), new Location(6, 6)));
+            Simulator sim = new Simulator(queue, null);
             sim.runSimulation();
 
         } else if (role == Role.GUEST) {
