@@ -16,6 +16,8 @@ public class Simulator {
     private static int gridRows = 10;
     private static int gridCols = 10;
 
+    private double batteryDrainPerStep;
+
     public static void setGridSize(int rows, int cols) {
         gridRows = rows;
         gridCols = cols;
@@ -32,6 +34,7 @@ public class Simulator {
     public Simulator(MissionQueue queue, MissionPlanner planner) {
         this.missionQueue = queue;
         this.scanner = new Scanner(System.in);
+        batteryDrainPerStep = 3.0 + 0.1 * ((gridRows * gridCols) / 100.0);
     }
 
     public void runSimulation() {
@@ -58,7 +61,18 @@ public class Simulator {
             scanner.nextLine();
         }
 
+        GridMap grid = new GridMap(gridRows, gridCols);
+        grid.clear();
+
+        // 🔁 Prepare all drones
+        for (Drone drone : missionGroups.keySet()) {
+            drone.setBatteryLevel(80);
+            drone.setCurrentLocation(new Location(0, 0));
+        }
+
+        Set<Location> globalPathTrace = new HashSet<>();
         int step = 1;
+
         for (Map.Entry<Drone, List<Mission>> entry : missionGroups.entrySet()) {
             Drone drone = entry.getKey();
             List<Mission> missions = entry.getValue();
@@ -73,7 +87,7 @@ public class Simulator {
 
                 int toTarget = getDistance(start, end);
                 int toCharger = getDistance(end, chargerLocation);
-                int totalNeeded = (toTarget + toCharger) * 5;
+                double totalNeeded = (toTarget + toCharger) * batteryDrainPerStep;
 
                 if (drone.getBatteryLevel() < totalNeeded) {
                     System.out.println("\n🔋 Battery low for next mission. Redirecting to charger first...");
@@ -83,31 +97,34 @@ public class Simulator {
                     System.out.println("🔋 Battery now full. Resuming mission.");
                     step++;
 
-                    // 🪫 Display 'C-D' at charger while charging
-                    GridMap grid = new GridMap(gridRows, gridCols);
-                    grid.clear();
-                    System.out.println("\n🔌 Charging...");
-                    grid.printMap(chargerLocation, null, null);
+                    grid.setCharging(true);
+                    grid.setDroneLocation(drone.getCurrentLocation());
+                    grid.setDrones(new ArrayList<>(missionGroups.keySet()));
+                    grid.printMap(null, null, new ArrayList<>(globalPathTrace)); // 🧠 Use traced paths
                     System.out.println("✅ Drone is now charging at the station.");
                 }
 
                 System.out.println("\n⏱️ Step " + step + ":");
-                GridMap grid = new GridMap(gridRows, gridCols);
-                grid.clear();
-                grid.placeDrone(drone.getCurrentLocation());
-                grid.placeTarget(end);
                 List<Location> path = PathFinder.findPath(grid, drone.getCurrentLocation(), end);
-                grid.printMap(drone.getCurrentLocation(), end, path);
-                System.out.println("📍 Path length: " + path.size());
-                grid.printWithMovement(drone.getCurrentLocation(), end, path);
+                globalPathTrace.addAll(path); // ✅ Accumulate paths
 
-                current.startMission();
-                drone.decreaseBattery(path.size());
                 drone.setCurrentLocation(end);
+                drone.decreaseBattery(path.size() * batteryDrainPerStep);
+                current.startMission();
                 MissionLogger.logMission(current, true);
+
+                grid.setDrones(new ArrayList<>(missionGroups.keySet()));
+                grid.printMap(null, null, new ArrayList<>(globalPathTrace));
+                System.out.println("📍 Path length: " + path.size());
+
                 step++;
             }
         }
+
+        // ✅ Final Grid
+        System.out.println("\n📡 Final Grid with All Drones + Paths:");
+        grid.setDrones(new ArrayList<>(missionGroups.keySet()));
+        grid.printMap(null, null, new ArrayList<>(globalPathTrace));
 
         System.out.println("\n✅ Simulation complete. All missions executed.");
         rechargeAllDrones(missionGroups.keySet());
@@ -120,13 +137,15 @@ public class Simulator {
         List<Location> path = PathFinder.findPath(grid, start, destination);
 
         System.out.println("\n⏱️ Step " + step + ":");
-        grid.printMap(start, destination, path);
+        grid.setDroneLocation(drone.getCurrentLocation());
+        grid.setDrones(Collections.singletonList(drone));
+        grid.setCharging(isCharging);
+        grid.printMap(null, destination, path);
         System.out.println("📍 Path length: " + path.size());
-        grid.printWithMovement(start, destination, path);
         System.out.println(msg);
 
         drone.setCurrentLocation(destination);
-        drone.decreaseBattery(path.size());
+        drone.decreaseBattery(path.size() * batteryDrainPerStep);
     }
 
     private List<Mission> sortByFuelEfficiency(List<Mission> missions, Location start) {
@@ -164,6 +183,6 @@ public class Simulator {
     }
 
     private int getDistance(Location a, Location b) {
-        return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+        return Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
     }
 }

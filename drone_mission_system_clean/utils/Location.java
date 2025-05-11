@@ -1,4 +1,3 @@
-
 package utils;
 
 import java.util.Objects;
@@ -13,8 +12,8 @@ public class Location {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Location))
-            return false;
+        if (this == o) return true; // same reference
+        if (o == null || getClass() != o.getClass()) return false;
         Location other = (Location) o;
         return this.row == other.row && this.col == other.col;
     }
@@ -39,5 +38,4 @@ public class Location {
     public void setY(int y) {
         this.row = y;
     }
-
 }

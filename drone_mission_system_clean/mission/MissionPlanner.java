@@ -93,7 +93,7 @@ public class MissionPlanner {
             System.out.println("⚠️ Not enough battery to complete mission and reach charger. Rerouting to recharge first...");
             List<Location> pathToChargerNow = PathFinder.findPath(grid, start, charger);
             if (pathToChargerNow != null) {
-                bestDrone.drainBattery(pathToChargerNow.size() * 5);
+                bestDrone.decreaseBattery(pathToChargerNow.size() * 5);
                 bestDrone.setCurrentLocation(charger);
                 System.out.println("🔋 Battery after reaching charger: " + bestDrone.getBatteryLevel() + "%");
                 bestDrone.recharge();
@@ -114,7 +114,7 @@ public class MissionPlanner {
             System.out.println("🔁 Reusing drone " + bestDrone.getId() + " (same mission type)");
         }
 
-        bestDrone.drainBattery(eta * 5);
+        bestDrone.decreaseBattery(eta * 5);
         System.out.println("🔋 Battery after assignment: " + bestDrone.getBatteryLevel() + "%");
 
         droneMissionCount.put(bestDrone.getId(),

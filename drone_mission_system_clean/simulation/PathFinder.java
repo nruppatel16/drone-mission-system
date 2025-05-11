@@ -5,11 +5,22 @@ import java.util.*;
 
 public class PathFinder {
 
+    // ✅ Global cache for repeated paths
+    private static final Map<String, List<Location>> pathCache = new HashMap<>();
+
     public static List<Location> findPath(GridMap grid, Location start, Location end) {
-        return findPathAStar(grid, start, end);
+        String key = start.row + "," + start.col + "->" + end.row + "," + end.col;
+
+        if (pathCache.containsKey(key)) {
+            return pathCache.get(key);
+        }
+
+        List<Location> path = findPathAStar(grid, start, end);
+        pathCache.put(key, path);
+        return path;
     }
 
-    public static List<Location> findPathAStar(GridMap grid, Location start, Location end) {
+    private static List<Location> findPathAStar(GridMap grid, Location start, Location end) {
         int rows = grid.getRows();
         int cols = grid.getCols();
         boolean[][] visited = new boolean[rows][cols];
@@ -17,14 +28,14 @@ public class PathFinder {
         Map<Location, Integer> gScore = new HashMap<>();
 
         PriorityQueue<Location> openSet = new PriorityQueue<>(
-                Comparator.comparingInt(loc -> gScore.get(loc) + getManhattanDistance(loc, end)));
+                Comparator.comparingInt(loc -> gScore.get(loc) + getChebyshevDistance(loc, end)));
 
         gScore.put(start, 0);
         openSet.offer(start);
 
         int[][] directions = {
-                { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, // ⬆️⬇️⬅️➡️
-                { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } // ↖️↗️↙️↘️
+            {0, 1}, {1, 0}, {0, -1}, {-1, 0},     // ↑ ↓ ← →
+            {-1, -1}, {-1, 1}, {1, -1}, {1, 1}    // Diagonals ↖ ↗ ↙ ↘
         };
 
         while (!openSet.isEmpty()) {
@@ -34,16 +45,27 @@ public class PathFinder {
                 return reconstructPath(cameFrom, start, end);
             }
 
-            if (visited[current.row][current.col])
-                continue;
+            if (visited[current.row][current.col]) continue;
             visited[current.row][current.col] = true;
 
             for (int[] dir : directions) {
                 int newRow = current.row + dir[0];
                 int newCol = current.col + dir[1];
 
-                if (!grid.isWalkable(newRow, newCol))
-                    continue;
+                // Check bounds and obstacles
+                if (!grid.isWalkable(newRow, newCol)) continue;
+
+                // Prevent "corner cutting" for diagonal movement
+                if (Math.abs(dir[0]) == 1 && Math.abs(dir[1]) == 1) {
+                    int sideRow = current.row + dir[0];
+                    int sideCol = current.col;
+                    int otherSideRow = current.row;
+                    int otherSideCol = current.col + dir[1];
+
+                    if (!grid.isWalkable(sideRow, sideCol) || !grid.isWalkable(otherSideRow, otherSideCol)) {
+                        continue; // can't go diagonally around a corner
+                    }
+                }
 
                 Location neighbor = new Location(newRow, newCol);
                 int tentativeG = gScore.get(current) + 1;
@@ -56,11 +78,11 @@ public class PathFinder {
             }
         }
 
-        return new ArrayList<>(); // No path
+        return new ArrayList<>(); // No path found
     }
 
-    private static int getManhattanDistance(Location a, Location b) {
-        return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
+    private static int getChebyshevDistance(Location a, Location b) {
+        return Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col));
     }
 
     private static List<Location> reconstructPath(Map<Location, Location> cameFrom, Location start, Location end) {

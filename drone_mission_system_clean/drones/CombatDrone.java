@@ -6,7 +6,7 @@ public class CombatDrone extends Drone {
     private int missileCount;
 
     public CombatDrone(String id, String model, Location startLocation, int missileCount) {
-        super(id, model, startLocation);
+        super(id, model, startLocation, DroneType.COMBAT); // ✅ Pass DroneType
         this.missileCount = missileCount;
     }
 

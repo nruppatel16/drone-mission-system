@@ -3,8 +3,9 @@ package drones;
 import utils.Location;
 
 public class SurveillanceDrone extends Drone {
+
     public SurveillanceDrone(String id, String model, Location startLocation) {
-        super(id, model, startLocation);
+        super(id, model, startLocation, DroneType.SURVEILLANCE); // ✅ Added DroneType
     }
 
     @Override

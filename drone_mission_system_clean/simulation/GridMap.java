@@ -1,8 +1,9 @@
 package simulation;
 
-import java.util.List;
-import java.util.Random;
+import drones.Drone;
 import utils.Location;
+
+import java.util.*;
 
 public class GridMap {
     private final int rows;
@@ -14,6 +15,11 @@ public class GridMap {
     public static final int EMPTY = 0;
     public static final int OBSTACLE = 1;
     public static final int CHARGER = 2;
+
+    private boolean isCharging = false;
+    private Location currentDroneLocation = null;
+
+    private Map<Location, Drone> droneSymbols = new HashMap<>();
 
     public GridMap(int rows, int cols) {
         this.rows = rows;
@@ -53,7 +59,6 @@ public class GridMap {
     }
 
     private void placeObstaclesDynamically() {
-        int totalCells = rows * cols;
         int obstacleCount = (rows / 10) * 4;
 
         Random rand = new Random();
@@ -77,19 +82,54 @@ public class GridMap {
         return row >= 0 && row < rows && col >= 0 && col < cols;
     }
 
-    public void printMap(Location drone, Location target, List<Location> path) {
+    public void setCharging(boolean charging) {
+        this.isCharging = charging;
+    }
+
+    public void setDroneLocation(Location droneLoc) {
+        this.currentDroneLocation = droneLoc;
+    }
+
+    public void setDrones(List<Drone> drones) {
+        droneSymbols.clear();
+        for (Drone d : drones) {
+            Location loc = d.getCurrentLocation();
+            droneSymbols.put(loc, d);
+        }
+    }
+
+    private String getColoredSymbol(Drone drone) {
+        String color;
+        char symbol;
+        switch (drone.getType()) {
+            case RESCUE:
+                color = "\u001B[34m"; // Blue
+                symbol = 'R';
+                break;
+            case COMBAT:
+                color = "\u001B[31m"; // Red
+                symbol = 'C';
+                break;
+            case SURVEILLANCE:
+                color = "\u001B[32m"; // Green
+                symbol = 'S';
+                break;
+            default:
+                color = "\u001B[0m"; // Reset
+                symbol = 'D';
+        }
+        return color + symbol + "\u001B[0m";
+    }
+
+    public void printMap(Location unused, Location target, List<Location> path) {
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
                 Location current = new Location(i, j);
 
                 if (i == base.row && j == base.col) {
                     System.out.print("B ");
-                } else if (drone != null && drone.row == i && drone.col == j) {
-                    if (grid[i][j] == CHARGER) {
-                        System.out.print("D ");
-                    } else {
-                        System.out.print("D ");
-                    }
+                } else if (droneSymbols.containsKey(current)) {
+                    System.out.print(getColoredSymbol(droneSymbols.get(current)) + " ");
                 } else if (target != null && target.row == i && target.col == j) {
                     System.out.print("T ");
                 } else if (grid[i][j] == OBSTACLE) {
@@ -104,35 +144,14 @@ public class GridMap {
             }
             System.out.println();
         }
+
+        // 🔎 Legend
+        System.out.println("\nLegend:");
+        System.out.println("\u001B[34mR\u001B[0m = Rescue   \u001B[31mC\u001B[0m = Combat   \u001B[32mS\u001B[0m = Surveillance   B = Base   C = Charger   X = Obstacle");
     }
 
     public void printWithMovement(Location start, Location end, List<Location> path) {
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                Location current = new Location(i, j);
-
-                if (i == base.row && j == base.col) {
-                    System.out.print("B ");
-                } else if (start.row == i && start.col == j) {
-                    if (grid[i][j] == CHARGER) {
-                        System.out.print("D ");
-                    } else {
-                        System.out.print("D ");
-                    }
-                } else if (end.row == i && end.col == j) {
-                    System.out.print("T ");
-                } else if (path != null && path.contains(current)) {
-                    System.out.print("* ");
-                } else if (grid[i][j] == OBSTACLE) {
-                    System.out.print("X ");
-                } else if (grid[i][j] == CHARGER) {
-                    System.out.print("C ");
-                } else {
-                    System.out.print(". ");
-                }
-            }
-            System.out.println();
-        }
+        printMap(start, end, path);
     }
 
     public int getRows() {
@@ -148,12 +167,6 @@ public class GridMap {
         placeDefaults();
     }
 
-    public void placeDrone(Location loc) {
-        // No-op: kept for compatibility with Simulator
-    }
-
-    public void placeTarget(Location loc) {
-        // No-op: kept for compatibility with Simulator
-    }
-
+    public void placeDrone(Location loc) {}
+    public void placeTarget(Location loc) {}
 }

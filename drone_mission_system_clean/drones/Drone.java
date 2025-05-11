@@ -7,12 +7,19 @@ public abstract class Drone {
     protected String id;
     protected String model;
     protected Location currentLocation;
-    protected int batteryLevel = 100; // new field (starts full)
+    protected double batteryLevel = 100.0;
 
-    public Drone(String id, String model, Location location) {
+    protected DroneType type; // ✅ enum field
+
+    public enum DroneType {
+        RESCUE, COMBAT, SURVEILLANCE
+    }
+
+    public Drone(String id, String model, Location location, DroneType type) {
         this.id = id;
         this.model = model;
         this.currentLocation = location;
+        this.type = type;
     }
 
     public String getId() {
@@ -27,27 +34,29 @@ public abstract class Drone {
         return currentLocation;
     }
 
-    public int getBatteryLevel() {
+    public double getBatteryLevel() {
         return batteryLevel;
     }
 
-    public void drainBattery(int amount) {
-        batteryLevel -= amount;
-        if (batteryLevel < 0) batteryLevel = 0;
+    public DroneType getType() {
+        return type;
+    }
+
+    public void decreaseBattery(double amount) {
+        batteryLevel = Math.max(0.0, batteryLevel - amount);
     }
 
     public void recharge() {
-        batteryLevel = 100;
+        batteryLevel = 100.0;
     }
 
     public void setCurrentLocation(Location loc) {
         this.currentLocation = loc;
     }
 
-    public abstract void performMission();
-
-    public void decreaseBattery(int amount) {
-        this.batteryLevel = Math.max(0, batteryLevel - amount);
+    public void setBatteryLevel(double level) {
+        batteryLevel = Math.max(0.0, Math.min(100.0, level));
     }
 
+    public abstract void performMission();
 }

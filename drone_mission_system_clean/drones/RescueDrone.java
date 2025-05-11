@@ -6,7 +6,7 @@ public class RescueDrone extends Drone {
     private boolean hasMedicalKit;
 
     public RescueDrone(String id, String model, Location startLocation, boolean hasMedicalKit) {
-        super(id, model, startLocation);
+        super(id, model, startLocation, DroneType.RESCUE); // ✅ Updated to include DroneType
         this.hasMedicalKit = hasMedicalKit;
     }
 
