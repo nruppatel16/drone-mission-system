@@ -1,6 +1,7 @@
 package simulation;
 
 import drones.Drone;
+import drones.DroneType;
 import utils.Location;
 
 import java.util.*;
@@ -20,6 +21,7 @@ public class GridMap {
     private Location currentDroneLocation = null;
 
     private Map<Location, Drone> droneSymbols = new HashMap<>();
+    private Map<Location, Character> pathSymbols = new HashMap<>();
 
     public GridMap(int rows, int cols) {
         this.rows = rows;
@@ -98,26 +100,35 @@ public class GridMap {
         }
     }
 
+    public void setPathSymbol(Location loc, char symbol) {
+        pathSymbols.put(loc, symbol);
+    }
+
     private String getColoredSymbol(Drone drone) {
         String color;
         char symbol;
         switch (drone.getType()) {
             case RESCUE:
-                color = "\u001B[34m"; // Blue
+                color = "\u001B[34m";
                 symbol = 'R';
                 break;
             case COMBAT:
-                color = "\u001B[31m"; // Red
+                color = "\u001B[31m";
                 symbol = 'C';
                 break;
             case SURVEILLANCE:
-                color = "\u001B[32m"; // Green
+                color = "\u001B[32m"; // changed from cyan to green
                 symbol = 'S';
                 break;
             default:
-                color = "\u001B[0m"; // Reset
+                color = "\u001B[0m";
                 symbol = 'D';
         }
+
+        if (drone.getCurrentLocation().equals(charger)) {
+            return color + "C-" + symbol + "\u001B[0m";
+        }
+
         return color + symbol + "\u001B[0m";
     }
 
@@ -136,8 +147,8 @@ public class GridMap {
                     System.out.print("X ");
                 } else if (grid[i][j] == CHARGER) {
                     System.out.print("C ");
-                } else if (path != null && path.contains(current)) {
-                    System.out.print("• ");
+                } else if (pathSymbols.containsKey(current)) {
+                    System.out.print(pathSymbols.get(current) + " ");
                 } else {
                     System.out.print(". ");
                 }
@@ -145,7 +156,6 @@ public class GridMap {
             System.out.println();
         }
 
-        // 🔎 Legend
         System.out.println("\nLegend:");
         System.out.println("\u001B[34mR\u001B[0m = Rescue   \u001B[31mC\u001B[0m = Combat   \u001B[32mS\u001B[0m = Surveillance   B = Base   C = Charger   X = Obstacle");
     }
@@ -165,6 +175,7 @@ public class GridMap {
     public void clear() {
         initializeGrid();
         placeDefaults();
+        pathSymbols.clear();
     }
 
     public void placeDrone(Location loc) {}

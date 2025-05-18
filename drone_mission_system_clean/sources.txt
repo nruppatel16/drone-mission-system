@@ -1,6 +1,7 @@
 ./drones/BasicDrone.java
 ./drones/CombatDrone.java
 ./drones/Drone.java
+./drones/DroneType.java
 ./drones/IDrone.java
 ./drones/RescueDrone.java
 ./drones/SurveillanceDrone.java
