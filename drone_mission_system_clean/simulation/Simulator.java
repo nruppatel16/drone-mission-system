@@ -7,6 +7,7 @@ import mission.MissionQueue;
 import mission.MissionPlanner;
 import utils.Location;
 import drones.DroneType;
+import security.ClearanceManager;
 
 import java.util.*;
 
@@ -81,6 +82,7 @@ public class Simulator {
         }
 
         Map<Location, Character> allPaths = new LinkedHashMap<>();
+        ClearanceManager clearanceManager = new ClearanceManager();
 
         for (Map.Entry<Drone, List<Mission>> entry : missionGroups.entrySet()) {
             Drone drone = entry.getKey();
@@ -93,6 +95,14 @@ public class Simulator {
             for (Mission current : missions) {
                 Location start = drone.getCurrentLocation();
                 Location end = current.getTargetLocation();
+
+                // Clearance check
+                boolean hasClearance = clearanceManager.hasClearance(drone, end);
+
+                if (!hasClearance) {
+                    System.out.println("❌ Mission denied for drone " + drone.getId() + ": No clearance to enter enemy territory.");
+                    continue;
+                }
 
                 int toTarget = getDistance(start, end);
                 int toCharger = getDistance(end, chargerLocation);

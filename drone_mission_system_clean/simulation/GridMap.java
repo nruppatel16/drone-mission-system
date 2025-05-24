@@ -16,6 +16,7 @@ public class GridMap {
     public static final int EMPTY = 0;
     public static final int OBSTACLE = 1;
     public static final int CHARGER = 2;
+    public static final int ENEMY_BORDER = 3;
 
     private boolean isCharging = false;
     private Location currentDroneLocation = null;
@@ -30,6 +31,7 @@ public class GridMap {
         this.grid = new int[rows][cols];
         initializeGrid();
         placeDefaults();
+        placeEnemyTerritoryBorder();
     }
 
     private void initializeGrid() {
@@ -43,6 +45,23 @@ public class GridMap {
     private void placeDefaults() {
         placeRechargeStation(charger.row, charger.col);
         placeObstaclesDynamically();
+    }
+
+    private void placeEnemyTerritoryBorder() {
+        int rStart = rows / 10;
+        int rEnd = rows / 2;
+        int cStart = (int) (cols * 0.65);
+        int cEnd = cols - 1;
+
+        for (int c = cStart; c <= cEnd; c++) {
+            grid[rStart][c] = ENEMY_BORDER;
+        }
+        for (int r = rStart + 1; r <= rEnd; r++) {
+            grid[r][cStart] = ENEMY_BORDER;
+        }
+        for (int c = cStart + 1; c <= cEnd; c++) {
+            grid[rEnd][c] = ENEMY_BORDER;
+        }
     }
 
     public void placeRechargeStation(int row, int col) {
@@ -77,7 +96,7 @@ public class GridMap {
     }
 
     public boolean isWalkable(int row, int col) {
-        return isValidCell(row, col) && grid[row][col] != OBSTACLE;
+        return isValidCell(row, col) && grid[row][col] != OBSTACLE && grid[row][col] != ENEMY_BORDER;
     }
 
     private boolean isValidCell(int row, int col) {
@@ -163,6 +182,8 @@ public class GridMap {
                     System.out.print("X ");
                 } else if (grid[i][j] == CHARGER) {
                     System.out.print("C ");
+                } else if (grid[i][j] == ENEMY_BORDER) {
+                    System.out.print("\u001B[31m#\u001B[0m ");
                 } else if (pathSymbols.containsKey(current)) {
                     String color = pathColors.getOrDefault(current, "\u001B[0m");
                     System.out.print(color + pathSymbols.get(current) + "\u001B[0m ");
@@ -174,7 +195,7 @@ public class GridMap {
         }
 
         System.out.println("\nLegend:");
-        System.out.println("\u001B[34mR\u001B[0m = Rescue   \u001B[31mC\u001B[0m = Combat   \u001B[32mS\u001B[0m = Surveillance   B = Base   C = Charger   X = Obstacle");
+        System.out.println("\u001B[34mR\u001B[0m = Rescue   \u001B[31mC\u001B[0m = Combat   \u001B[32mS\u001B[0m = Surveillance   B = Base   C = Charger   X = Obstacle   \u001B[31m#\u001B[0m = Enemy Border");
     }
 
     public void printWithMovement(Location start, Location end, List<Location> path) {
@@ -194,6 +215,7 @@ public class GridMap {
         placeDefaults();
         pathSymbols.clear();
         pathColors.clear();
+        placeEnemyTerritoryBorder();
     }
 
     public void placeDrone(Location loc) {}
