@@ -22,6 +22,7 @@ public class GridMap {
 
     private Map<Location, Drone> droneSymbols = new HashMap<>();
     private Map<Location, Character> pathSymbols = new HashMap<>();
+    private Map<Location, String> pathColors = new HashMap<>();
 
     public GridMap(int rows, int cols) {
         this.rows = rows;
@@ -62,7 +63,6 @@ public class GridMap {
 
     private void placeObstaclesDynamically() {
         int obstacleCount = (rows / 10) * 4;
-
         Random rand = new Random();
         int placed = 0;
 
@@ -100,8 +100,24 @@ public class GridMap {
         }
     }
 
-    public void setPathSymbol(Location loc, char symbol) {
-        pathSymbols.put(loc, symbol);
+    public void setPathSymbol(Location loc, char symbol, DroneType type) {
+        if (!droneSymbols.containsKey(loc)) {
+            pathSymbols.put(loc, symbol);
+            pathColors.put(loc, getColorForType(type));
+        }
+    }
+
+    private String getColorForType(DroneType type) {
+        switch (type) {
+            case RESCUE:
+                return "\u001B[34m"; // Blue
+            case COMBAT:
+                return "\u001B[31m"; // Red
+            case SURVEILLANCE:
+                return "\u001B[32m"; // Green
+            default:
+                return "\u001B[0m"; // Default
+        }
     }
 
     private String getColoredSymbol(Drone drone) {
@@ -117,7 +133,7 @@ public class GridMap {
                 symbol = 'C';
                 break;
             case SURVEILLANCE:
-                color = "\u001B[32m"; // changed from cyan to green
+                color = "\u001B[32m";
                 symbol = 'S';
                 break;
             default:
@@ -148,7 +164,8 @@ public class GridMap {
                 } else if (grid[i][j] == CHARGER) {
                     System.out.print("C ");
                 } else if (pathSymbols.containsKey(current)) {
-                    System.out.print(pathSymbols.get(current) + " ");
+                    String color = pathColors.getOrDefault(current, "\u001B[0m");
+                    System.out.print(color + pathSymbols.get(current) + "\u001B[0m ");
                 } else {
                     System.out.print(". ");
                 }
@@ -176,6 +193,7 @@ public class GridMap {
         initializeGrid();
         placeDefaults();
         pathSymbols.clear();
+        pathColors.clear();
     }
 
     public void placeDrone(Location loc) {}

@@ -6,6 +6,7 @@ import mission.MissionLogger;
 import mission.MissionQueue;
 import mission.MissionPlanner;
 import utils.Location;
+import drones.DroneType;
 
 import java.util.*;
 
@@ -17,6 +18,16 @@ public class Simulator {
     private static int gridCols = 10;
 
     private double batteryDrainPerStep;
+
+    private DroneType getDroneTypeFromPathChar(char symbol) {
+        switch (symbol) {
+            case '^': return DroneType.RESCUE;
+            case '*': return DroneType.COMBAT;
+            case '`': return DroneType.SURVEILLANCE;
+            case 'A': return DroneType.BASIC;
+            default: return DroneType.BASIC;
+        }
+    }
 
     public static void setGridSize(int rows, int cols) {
         gridRows = rows;
@@ -69,7 +80,7 @@ public class Simulator {
             drone.setCurrentLocation(new Location(0, 0));
         }
 
-        Map<Location, Character> allPaths = new HashMap<>();
+        Map<Location, Character> allPaths = new LinkedHashMap<>();
 
         for (Map.Entry<Drone, List<Mission>> entry : missionGroups.entrySet()) {
             Drone drone = entry.getKey();
@@ -90,7 +101,9 @@ public class Simulator {
                 if (drone.getBatteryLevel() < totalNeeded) {
                     List<Location> rechargePath = PathFinder.findPath(grid, drone.getCurrentLocation(), chargerLocation);
                     char pathChar = getPathCharForDrone(drone);
-                    for (Location loc : rechargePath) allPaths.put(loc, pathChar);
+                    for (Location loc : rechargePath) {
+                        allPaths.put(loc, pathChar);
+                    }
 
                     drone.setCurrentLocation(chargerLocation);
                     drone.decreaseBattery(rechargePath.size() * batteryDrainPerStep);
@@ -99,7 +112,9 @@ public class Simulator {
 
                 List<Location> missionPath = PathFinder.findPath(grid, drone.getCurrentLocation(), end);
                 char pathChar = getPathCharForDrone(drone);
-                for (Location loc : missionPath) allPaths.put(loc, pathChar);
+                for (Location loc : missionPath) {
+                    allPaths.put(loc, pathChar);
+                }
 
                 drone.setCurrentLocation(end);
                 drone.decreaseBattery(missionPath.size() * batteryDrainPerStep);
@@ -111,8 +126,12 @@ public class Simulator {
         System.out.println("\n🗺️ Grid with Combined Paths:");
         grid.setDrones(new ArrayList<>(missionGroups.keySet()));
         for (Map.Entry<Location, Character> entry : allPaths.entrySet()) {
-            grid.setPathSymbol(entry.getKey(), entry.getValue());
+            Location loc = entry.getKey();
+            char symbol = entry.getValue();
+            DroneType type = getDroneTypeFromPathChar(symbol);
+            grid.setPathSymbol(loc, symbol, type);
         }
+
         grid.printMap(null, null, null);
 
         System.out.println("\n📡 Final Drone Positions:");
